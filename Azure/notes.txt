@@ -1,0 +1,58 @@
+
+add tfstate to azure instead of local
+https://learn.microsoft.com/en-us/azure/developer/terraform/create-k8s-cluster-with-aks-applicationgateway-ingress
+
+git clone https://mshanley80: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@github.com/mshanley80/terraform
+
+alt provider
+https://github.com/matheusfm/terraform-aks
+
+#  "appId": "a18cb028-08fc-4669-ab71-692311345b25",
+#  "displayName": "azure-cli-2023-01-16-00-45-07",
+#  "password": "h_v8Q~LPwq5dlL4zI9AVcFXORd-IngFI5FcAPaCL",
+#  "tenant": "f07be8b0-7aff-4f32-8c8b-da3b203c7d2f"
+
+aks_service_principal_app_id = "a18cb028-08fc-4669-ab71-692311345b25"
+aks_service_principal_client_secret = "h_v8Q~LPwq5dlL4zI9AVcFXORd-IngFI5FcAPaCL"
+
+
+terraform show -json main.tfplan
+
+
+az group delete --name shanleytest-saltdemo --yes --no-wait
+
+"https://saltdemo-0ceb7685.hcp.eastus.azmk8s.io:443"
+
+
+get the kubeconfig
+echo "$(terraform output kube_config)" > ~/.kube/azurek8s
+export KUBECONFIG=~/.kube/azurek8s
+
+
+
+resource "helm_release" "add_dns_to_controller" {
+  name             = "ingress-nginx"
+  repository       = "https://kubernetes.github.io/ingress-nginx/"
+  chart            = "ingress-nginx"
+  namespace        = "ingress-nginx"
+  set {
+    name  = "controller.service.annotations\\.service\\.beta\\.kubernetes\\.io/azure-dns-label-name"
+    value = "saltdemo"
+  }
+}
+
+
+helm install httpbin2022 mshanley80/httpbin2022 \
+  --namespace httpbin \
+  --create-namespace
+# add ingress to httpbin2022 in the httpbin namespace
+kubectl apply -n httpbin -f https://raw.githubusercontent.com/mshanley80/httpbin2022/master/deployments/k8s/httpbin2022/httpbin2022-ingress.yaml
+
+
+resource "helm_release" "deploy_httpbin2022" {
+  name             = "httpbin2022"
+  repository       = "https://mshanley80.github.io/helm-charts/"
+  chart            = "httpbin2022"
+  namespace        = "httpbin"
+  create_namespace = true
+}
